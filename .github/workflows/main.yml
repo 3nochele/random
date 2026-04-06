@@ -1,0 +1,36 @@
+name: Monthly Site Ping with Report
+
+on:
+  schedule:
+    - cron: '0 0 */6 * *' 
+  workflow_dispatch: 
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run script
+        run: python ping_sites.py
+
+      - name: Commit and Push Report
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "actions@github.com"
+          git add report.csv detailed_status.csv
+          git commit -m "Update Site Status Reports" || exit 0
+          # নিচের লাইনটি আপনার সমস্যা সমাধান করবে (Fetch and Rebase)
+          git pull --rebase origin main 
+          git push origin main
