@@ -33,18 +33,18 @@ def ping_url(original_url):
     if base_url.endswith('/'):
         base_url = base_url[:-1]
     
+    # 💥 Magic Trick: গুগল বট সেজে ইনফিনিটি ফ্রির সিকিউরিটি বাইপাস করা
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Accept-Language': 'en-US,en;q=0.9',
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5'
     }
     
     session = requests.Session()
     session.headers.update(headers)
     
-    # শুধুমাত্র সুনির্দিষ্ট সাসপেন্ডেড লিংক
     suspend_urls = ["suspended-domain.net", "suspendedpage", "epizy.com/suspended"]
     
-    # স্ক্রিনশট থেকে নেওয়া একদম সুনির্দিষ্ট এরর বাক্যগুলো (Strict phrases)
     strict_error_phrases = [
         "this domain has been suspended",
         "reaching server limits",
@@ -52,28 +52,34 @@ def ping_url(original_url):
         "account has been suspended", 
         "this site is under construction", 
         "default web site page", 
-        "suspended-domain.net", # জাভাস্ক্রিপ্ট রিডাইরেক্ট ধরার জন্য
-        "epizy.com/suspended",
+        "suspended-domain.net",
         "site is sleeping"
+    ]
+
+    # সিকিউরিটি দেওয়ালের সিগনেচার
+    js_challenge_phrases = [
+        "aes.js",
+        "this site requires javascript to work",
+        "checking your browser"
     ]
     
     try:
-        # --- ধাপ ১: হোম পেজে প্রবেশ ---
         time.sleep(random.uniform(1, 3))
         response1 = session.get(base_url, timeout=15, allow_redirects=True)
         
         final_url1 = response1.url.lower()
         page_content1 = response1.text.lower()
         
-        # URL চেক
         if any(url_part in final_url1 for url_part in suspend_urls):
             return original_url, response1.status_code, "Suspended", response1.url
             
-        # HTML কন্টেন্ট চেক (Specific Phrase from Screenshot)
         if any(phrase in page_content1 for phrase in strict_error_phrases):
             return original_url, response1.status_code, "Suspended/Host_Error", response1.url
             
-        # --- ধাপ ২: ২য় পেজে ক্লিক করা ---
+        # যদি গুগল বট হওয়ার পরও সে সিকিউরিটি পেজ দেয়
+        if any(phrase in page_content1 for phrase in js_challenge_phrases):
+            return original_url, response1.status_code, "Blocked_by_Security", response1.url
+            
         chosen_sub = random.choice(SUB_PAGES)
         if not chosen_sub:
             response2 = response1
@@ -92,6 +98,9 @@ def ping_url(original_url):
             
         if any(phrase in page_content2 for phrase in strict_error_phrases):
             return original_url, response2.status_code, "Suspended/Host_Error", response2.url
+            
+        if any(phrase in page_content2 for phrase in js_challenge_phrases):
+            return original_url, response2.status_code, "Blocked_by_Security", response2.url
             
         history = response2.history
         redirected = len(history) > 0
