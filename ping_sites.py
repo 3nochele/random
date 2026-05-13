@@ -9,9 +9,10 @@ from concurrent.futures import ThreadPoolExecutor
 SITES_FILE = 'sites.txt'
 SUMMARY_REPORT = 'report.csv'
 PROBLEM_REPORT = 'detailed_status.csv'
-MAX_WORKERS = 3 
+MAX_WORKERS = 4 
 
-SUB_PAGES = ['', '/about-us', '/contact-us']
+# ২য় ক্লিকে যাওয়ার জন্য ইন্টারনাল পেজের লিংক
+SUB_PAGES = ['', '/about-us', '/contact-us', '/privacy-policy']
 
 def is_valid_url(url):
     if '.' not in url or ' ' in url or '↑' in url:
@@ -26,45 +27,65 @@ def ping_url(original_url):
         return None
 
     if not url.startswith('http'):
-        formatted_url = 'http://' + url
+        base_url = 'http://' + url
     else:
-        formatted_url = url
+        base_url = url
         
-    if formatted_url.endswith('/'):
-        formatted_url = formatted_url[:-1]
+    if base_url.endswith('/'):
+        base_url = base_url[:-1]
     
-    target_url = f"{formatted_url}{random.choice(SUB_PAGES)}"
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'}
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9',
+    }
     
-    time.sleep(random.uniform(2, 5)) 
+    session = requests.Session()
+    session.headers.update(headers)
     
     try:
-        response = requests.get(target_url, headers=headers, timeout=20, allow_redirects=True)
-        final_url = response.url.lower()
+        # --- ধাপ ১: হোম পেজে প্রবেশ ---
+        time.sleep(random.uniform(1, 3))
+        response1 = session.get(base_url, timeout=15, allow_redirects=True)
         
-        # রিডাইরেক্ট চেক করার লজিক (HTTP থেকে HTTPS বা ডব্লিউডব্লিউডব্লিউ বাদে বড় পরিবর্তন খুঁজবে)
-        history = response.history
+        final_url1 = response1.url.lower()
+        page_content1 = response1.text.lower()
+        
+        if "suspended" in final_url1 or "limit" in final_url1 or "notify" in final_url1 or "suspended" in page_content1 or "account has been suspended" in page_content1 or "infinityfree" in page_content1 or "ifastnet" in page_content1:
+            return original_url, response1.status_code, "Suspended", response1.url
+            
+        # ---  ধাপ ২: ২য় পেজে ক্লিক করা ---
+        chosen_sub = random.choice(SUB_PAGES)
+        if not chosen_sub:
+            response2 = response1
+            final_url2 = final_url1
+            page_content2 = page_content1
+        else:
+            target_url = f"{base_url}{chosen_sub}"
+            time.sleep(random.uniform(2, 4))
+            session.headers.update({'Referer': response1.url})
+            response2 = session.get(target_url, timeout=15, allow_redirects=True)
+            final_url2 = response2.url.lower()
+            page_content2 = response2.text.lower()
+        
+        if "suspended" in final_url2 or "limit" in final_url2 or "notify" in final_url2 or "suspended" in page_content2 or "account has been suspended" in page_content2 or "infinityfree" in page_content2 or "ifastnet" in page_content2:
+            return original_url, response2.status_code, "Suspended", response2.url
+            
+        history = response2.history
         redirected = len(history) > 0
         
-        # সাসপেন্ডেড কি না চেক
-        if redirected and ("suspended" in final_url or "limit" in final_url or "notify" in final_url):
-            return original_url, response.status_code, "Suspended", response.url
-        
-        # যদি সাকসেসফুল হয় (Status 200) কিন্তু রিডাইরেক্ট হয়ে অন্য ডোমেইনে চলে যায়
-        elif redirected and response.status_code == 200:
-            # শুধু স্লাশ বা http/https এর পরিবর্তন হলে সেটাকে রিডাইরেক্ট ধরবে না
+        if redirected and response2.status_code == 200:
             orig_clean = url.replace('http://', '').replace('https://', '').replace('www.', '').split('/')[0]
-            final_clean = response.url.replace('http://', '').replace('https://', '').replace('www.', '').split('/')[0]
+            final_clean = response2.url.replace('http://', '').replace('https://', '').replace('www.', '').split('/')[0]
             
             if orig_clean != final_clean:
-                return original_url, response.status_code, "Redirected", response.url
+                return original_url, response2.status_code, "Redirected", response2.url
             else:
-                return original_url, response.status_code, "Success", response.url
+                return original_url, response2.status_code, "Success", response2.url
         
-        elif response.status_code == 200:
-            return original_url, response.status_code, "Success", response.url
+        if response2.status_code == 200:
+            return original_url, response2.status_code, "Success", response2.url
         else:
-            return original_url, response.status_code, f"Error_{response.status_code}", response.url
+            return original_url, response2.status_code, f"Error_{response2.status_code}", response2.url
             
     except Exception:
         return original_url, 0, "Invalid/Down", "N/A"
@@ -82,7 +103,7 @@ def start_process():
     results = [r for r in results if r is not None]
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # রিপোর্ট ফাইল তৈরি (Final_URL কলামসহ)
+    # রিপোর্ট ফাইল তৈরি
     with open(PROBLEM_REPORT, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         writer.writerow(["Exact_URL_from_List", "Status_Code", "Issue_Type", "Final_URL", "Checked_At"])
@@ -90,6 +111,7 @@ def start_process():
             if status != "Success":
                 writer.writerow([url, code, status, final_u, now])
 
+    # কাউন্টারের একদম ফ্রেশ ও সঠিক হিসাব
     success_count = sum(1 for _, _, s, _ in results if s == "Success")
     suspended_count = sum(1 for _, _, s, _ in results if s == "Suspended")
     redirect_count = sum(1 for _, _, s, _ in results if s == "Redirected")
