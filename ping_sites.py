@@ -11,7 +11,6 @@ SUMMARY_REPORT = 'report.csv'
 PROBLEM_REPORT = 'detailed_status.csv'
 MAX_WORKERS = 4 
 
-# ২য় ক্লিকে যাওয়ার জন্য ইন্টারনাল পেজের লিংক
 SUB_PAGES = ['', '/about-us', '/contact-us', '/privacy-policy']
 
 def is_valid_url(url):
@@ -42,29 +41,39 @@ def ping_url(original_url):
     session = requests.Session()
     session.headers.update(headers)
     
-    # ফ্রি হোস্টিংয়ের সব ধরনের সাসপেন্ডেড, ডিফল্ট ও হোল্ডিং পেজের সিগনেচার লিস্ট
-    error_keywords = [
-        "suspended", "limit", "notify", "account has been suspended", 
-        "infinityfree", "ifastnet", "byethost", "byet.host", 
-        "securesignup", "under construction", "default web site", 
-        "holding page", "aes.js", "__test"
+    # শুধুমাত্র সুনির্দিষ্ট সাসপেন্ডেড লিংক
+    suspend_urls = ["suspended-domain.net", "suspendedpage", "epizy.com/suspended"]
+    
+    # স্ক্রিনশট থেকে নেওয়া একদম সুনির্দিষ্ট এরর বাক্যগুলো (Strict phrases)
+    strict_error_phrases = [
+        "this domain has been suspended",
+        "reaching server limits",
+        "contact support in your hosting control panel",
+        "account has been suspended", 
+        "this site is under construction", 
+        "default web site page", 
+        "suspended-domain.net", # জাভাস্ক্রিপ্ট রিডাইরেক্ট ধরার জন্য
+        "epizy.com/suspended",
+        "site is sleeping"
     ]
     
     try:
-        # ---结构 ধাপ ১: হোম পেজে প্রবেশ ---
+        # --- ধাপ ১: হোম পেজে প্রবেশ ---
         time.sleep(random.uniform(1, 3))
         response1 = session.get(base_url, timeout=15, allow_redirects=True)
         
         final_url1 = response1.url.lower()
         page_content1 = response1.text.lower()
         
-        if any(word in final_url1 for word in ["suspended", "limit", "notify"]):
+        # URL চেক
+        if any(url_part in final_url1 for url_part in suspend_urls):
             return original_url, response1.status_code, "Suspended", response1.url
             
-        if any(word in page_content1 for word in error_keywords):
+        # HTML কন্টেন্ট চেক (Specific Phrase from Screenshot)
+        if any(phrase in page_content1 for phrase in strict_error_phrases):
             return original_url, response1.status_code, "Suspended/Host_Error", response1.url
             
-        # ---  ধাপ ২: ২য় পেজে ক্লিক করা ---
+        # --- ধাপ ২: ২য় পেজে ক্লিক করা ---
         chosen_sub = random.choice(SUB_PAGES)
         if not chosen_sub:
             response2 = response1
@@ -78,10 +87,10 @@ def ping_url(original_url):
             final_url2 = response2.url.lower()
             page_content2 = response2.text.lower()
         
-        if any(word in final_url2 for word in ["suspended", "limit", "notify"]):
+        if any(url_part in final_url2 for url_part in suspend_urls):
             return original_url, response2.status_code, "Suspended", response2.url
             
-        if any(word in page_content2 for word in error_keywords):
+        if any(phrase in page_content2 for phrase in strict_error_phrases):
             return original_url, response2.status_code, "Suspended/Host_Error", response2.url
             
         history = response2.history
