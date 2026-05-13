@@ -42,16 +42,27 @@ def ping_url(original_url):
     session = requests.Session()
     session.headers.update(headers)
     
+    # ফ্রি হোস্টিংয়ের সব ধরনের সাসপেন্ডেড, ডিফল্ট ও হোল্ডিং পেজের সিগনেচার লিস্ট
+    error_keywords = [
+        "suspended", "limit", "notify", "account has been suspended", 
+        "infinityfree", "ifastnet", "byethost", "byet.host", 
+        "securesignup", "under construction", "default web site", 
+        "holding page", "aes.js", "__test"
+    ]
+    
     try:
-        # --- ধাপ ১: হোম পেজে প্রবেশ ---
+        # ---结构 ধাপ ১: হোম পেজে প্রবেশ ---
         time.sleep(random.uniform(1, 3))
         response1 = session.get(base_url, timeout=15, allow_redirects=True)
         
         final_url1 = response1.url.lower()
         page_content1 = response1.text.lower()
         
-        if "suspended" in final_url1 or "limit" in final_url1 or "notify" in final_url1 or "suspended" in page_content1 or "account has been suspended" in page_content1 or "infinityfree" in page_content1 or "ifastnet" in page_content1:
+        if any(word in final_url1 for word in ["suspended", "limit", "notify"]):
             return original_url, response1.status_code, "Suspended", response1.url
+            
+        if any(word in page_content1 for word in error_keywords):
+            return original_url, response1.status_code, "Suspended/Host_Error", response1.url
             
         # ---  ধাপ ২: ২য় পেজে ক্লিক করা ---
         chosen_sub = random.choice(SUB_PAGES)
@@ -67,8 +78,11 @@ def ping_url(original_url):
             final_url2 = response2.url.lower()
             page_content2 = response2.text.lower()
         
-        if "suspended" in final_url2 or "limit" in final_url2 or "notify" in final_url2 or "suspended" in page_content2 or "account has been suspended" in page_content2 or "infinityfree" in page_content2 or "ifastnet" in page_content2:
+        if any(word in final_url2 for word in ["suspended", "limit", "notify"]):
             return original_url, response2.status_code, "Suspended", response2.url
+            
+        if any(word in page_content2 for word in error_keywords):
+            return original_url, response2.status_code, "Suspended/Host_Error", response2.url
             
         history = response2.history
         redirected = len(history) > 0
@@ -103,7 +117,6 @@ def start_process():
     results = [r for r in results if r is not None]
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # রিপোর্ট ফাইল তৈরি
     with open(PROBLEM_REPORT, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         writer.writerow(["Exact_URL_from_List", "Status_Code", "Issue_Type", "Final_URL", "Checked_At"])
@@ -111,9 +124,8 @@ def start_process():
             if status != "Success":
                 writer.writerow([url, code, status, final_u, now])
 
-    # কাউন্টারের একদম ফ্রেশ ও সঠিক হিসাব
     success_count = sum(1 for _, _, s, _ in results if s == "Success")
-    suspended_count = sum(1 for _, _, s, _ in results if s == "Suspended")
+    suspended_count = sum(1 for _, _, s, _ in results if "Suspended" in s)
     redirect_count = sum(1 for _, _, s, _ in results if s == "Redirected")
     failed_count = len(results) - (success_count + suspended_count + redirect_count)
 
