@@ -1,5 +1,5 @@
 Exact_URL_from_List,Status_Code,Issue_Type,Final_URL,Checked_At
-http://turnerkesl.is-great.org,404,Suspended,https://suspended-domain.net/index.php?host=turnerkesl.is-great.org,2026-07-25 02:57:38
-http://oceanekloc.kesug.com,404,Suspended,https://suspended-domain.net/index.php?host=oceanekloc.kesug.com,2026-07-25 02:57:38
-http://bishal.com,0,Invalid/Down,N/A,2026-07-25 02:57:38
-http://asd.com/,0,Invalid/Down,N/A,2026-07-25 02:57:38
+http://turnerkesl.is-great.org,404,Error_404,http://turnerkesl.is-great.org/about-us,2026-07-31 03:24:05
+http://oceanekloc.kesug.com,404,Error_404,http://oceanekloc.kesug.com/contact-us,2026-07-31 03:24:05
+http://asd.com/,0,Invalid/Down,N/A,2026-07-31 03:24:05
+http://bishal.com,0,Invalid/Down,N/A,2026-07-31 03:24:05
