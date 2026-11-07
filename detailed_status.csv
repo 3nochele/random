@@ -1,4 +1,5 @@
 Exact_URL_from_List,Status_Code,Issue_Type,Final_URL,Checked_At
-http://bishal.com,0,Invalid/Down,N/A,2026-11-01 05:15:50
-http://asd.com/,0,Invalid/Down,N/A,2026-11-01 05:15:50
-http://turnerkesl.is-great.org,404,Error_404,http://turnerkesl.is-great.org/about-us,2026-11-01 05:15:50
+http://bishal.com,403,Error_403,https://www.hugedomains.com/domain_profile.cfm?d=bishal.com,2026-11-07 05:22:04
+http://turnerkesl.is-great.org,404,Error_404,http://turnerkesl.is-great.org/contact-us,2026-11-07 05:22:04
+http://asd.com/,0,Invalid/Down,N/A,2026-11-07 05:22:04
+http://oceanekloc.kesug.com,404,Error_404,http://oceanekloc.kesug.com/privacy-policy,2026-11-07 05:22:04
